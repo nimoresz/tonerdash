@@ -1,0 +1,166 @@
+# Toner Dashboard: printer supplies monitoring.
+#   docker compose up -d --build      start (Docker Desktop or plain Docker on Linux)
+#   docker compose logs app           start password, poll log
+#   http://localhost:8080/
+name: toner
+
+x-common: &common
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # One-shot: generates a random database password on the first start and
+  # keeps it in a private volume. Nothing to type, nothing stored in .env.
+  secrets:
+    image: alpine:3.20
+    restart: "no"
+    network_mode: none
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    read_only: true
+    volumes:
+      - secrets:/secrets
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        if [ ! -s /secrets/db_password ]; then
+          tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40 > /secrets/db_password
+          echo "database password generated"
+        fi
+        chown 10001:10001 /secrets/db_password
+        chmod 0400 /secrets/db_password
+
+  db:
+    <<: *common
+    image: postgres:16-alpine
+    depends_on:
+      secrets:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_DB: toner
+      POSTGRES_USER: toner
+      POSTGRES_PASSWORD_FILE: /run/secrets/toner/db_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=trust"
+      TZ: ${TZ:-Europe/Moscow}
+    # small footprint: a few MB of data, one client
+    command:
+      - postgres
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - effective_cache_size=96MB
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=16MB
+      - -c
+      - max_connections=20
+      - -c
+      - wal_buffers=1MB
+      - -c
+      - min_wal_size=32MB
+      - -c
+      - max_wal_size=256MB
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - synchronous_commit=off
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - listen_addresses=*
+      - -c
+      - log_min_duration_statement=2000
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - secrets:/run/secrets/toner:ro
+    tmpfs:
+      - /var/run/postgresql:size=4m
+      - /tmp:size=16m
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    networks: [backend]
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 100
+    shm_size: 64m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toner -d toner -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  app:
+    <<: *common
+    build: ./app
+    image: toner-dashboard:4.0
+    depends_on:
+      secrets:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    # values come from .env (see .env.example); everything else is set in the web UI
+    environment:
+      DB_HOST: db
+      DB_PASSWORD_FILE: /run/secrets/toner/db_password
+      WEB_PORT: ${WEB_PORT:-8080}
+      BIND_ADDR: ${BIND_ADDR:-127.0.0.1}
+      TZ: ${TZ:-Europe/Moscow}
+      SUBNETS: ${SUBNETS:-192.168.0.0/24,192.168.1.0/24,192.168.2.0/24,192.168.3.0/24,192.168.4.0/24,192.168.5.0/24,192.168.6.0/24,192.168.7.0/24,192.168.8.0/24,192.168.77.0/24,192.168.91.0/24,192.168.99.0/24}
+      EXTRA_IPS: ${EXTRA_IPS:-}
+      SNMP_COMMUNITY: ${SNMP_COMMUNITY:-public}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SERVER_NAME: ${SERVER_NAME:-toner}
+      DEMO: ${DEMO:-false}
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    volumes:
+      - secrets:/run/secrets/toner:ro
+      - ./branding:/app/branding:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    user: "10001:10001"
+    cap_drop: [ALL]
+    init: true
+    networks: [backend, frontend]
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    stop_grace_period: 15s
+
+networks:
+  # database network: no route outside, the DB port is never published
+  backend:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.29.10.0/24
+  # app -> printers in the LAN and the published web port.
+  # Fixed 172.29.x so Docker never takes a 192.168.x range that printers live in.
+  frontend:
+    ipam:
+      config:
+        - subnet: 172.29.11.0/24
+
+volumes:
+  pgdata:
+  secrets:

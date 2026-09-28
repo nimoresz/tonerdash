@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<title>Расходники принтеров</title>
+<link rel="preload" href="static/fonts/onest-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="static/app.css">
+<script src="static/app.js" defer></script>
+</head>
+<body class="gated">
+<div class="gate" id="gate" hidden></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sb-head"><a class="brand" href="#/"><svg class="plogo" id="atom" viewBox="-250 -250 500 500" aria-hidden="true"><path d="M-173.2 -100L0 -200 M-173.2 -100L0 0 M0 0L173.2 -100 M173.2 -100L86.6 -150 M86.6 -150L0 -100 M173.2 -100L173.2 100 M0 0L0 200 M-173.2 -100L-173.2 0 M-173.2 0L-86.6 50 M-173.2 100L0 200 M0 200L86.6 150 M86.6 150L86.6 50" fill="none" stroke="currentColor" stroke-width="18.7" stroke-linecap="round"/><g fill="currentColor"><circle class="nd" style="--d:0.00s;--nc:var(--c)" cx="0" cy="-200" r="35.4"/><circle class="nd" style="--d:0.12s;--nc:var(--m)" cx="86.6" cy="-150" r="26.8"/><circle class="nd" style="--d:0.24s;--nc:var(--y)" cx="173.2" cy="-100" r="35.4"/><circle class="nd" style="--d:0.36s;--nc:var(--c)" cx="173.2" cy="100" r="35.4"/><circle class="nd" style="--d:0.48s;--nc:var(--m)" cx="86.6" cy="50" r="26.8"/><circle class="nd" style="--d:0.60s;--nc:var(--y)" cx="86.6" cy="150" r="26.8"/><circle class="nd" style="--d:0.72s;--nc:var(--c)" cx="0" cy="200" r="35.4"/><circle class="nd" style="--d:0.84s;--nc:var(--m)" cx="-173.2" cy="100" r="35.4"/><circle class="nd" style="--d:0.96s;--nc:var(--y)" cx="-86.6" cy="50" r="26.8"/><circle class="nd" style="--d:1.08s;--nc:var(--c)" cx="-173.2" cy="0" r="26.8"/><circle class="nd" style="--d:1.20s;--nc:var(--m)" cx="-173.2" cy="-100" r="35.4"/><circle class="nd" style="--d:1.32s;--nc:var(--y)" cx="0" cy="-100" r="26.8"/><circle class="nd" style="--d:1.44s;--nc:var(--c)" cx="0" cy="0" r="35.4"/></g></svg><img id="logoImg" alt="" hidden><span><b id="orgShort"></b><small id="appName"></small></span></a></div>
+  <nav class="nav" id="nav"></nav>
+  <div class="sb-foot" id="sbFoot"></div>
+</aside>
+<div class="backdrop" id="backdrop"></div>
+<div class="content">
+  <header class="topbar" id="top">
+    <button class="circ burger" id="burger" type="button"></button>
+    <label class="tb-search"><span id="sIco"></span><input id="q" type="search" autocomplete="off"></label>
+    <div class="tb-right">
+      <div class="upd" id="upd"></div>
+      <button class="circ" id="refresh" type="button"></button>
+      <button class="circ" id="theme" type="button"></button>
+      <div class="who-wrap"><button class="who" id="who" type="button" aria-haspopup="menu"></button><div class="who-menu" id="whoMenu" role="menu" hidden></div></div>
+    </div>
+  </header>
+  <main class="view" id="view"></main>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" tabindex="-1"></div></div>
+<div class="toast" id="toast"></div>
+</body>
+</html>
